@@ -97,7 +97,7 @@ public class Rover {
 		sendTo_RCP.println("LOC");
 		line = receiveFrom_RCP.readLine();
 		if (line == null) {
-			System.out.println("ROVER_00 check connection to server");
+			System.out.println("ROVER_05 check connection to server");
 			line = "";
 		}
 		if (line.startsWith("LOC")) {
@@ -175,11 +175,11 @@ public class Rover {
 		String jsonScanMapIn = receiveFrom_RCP.readLine(); 
 		
 		if (jsonScanMapIn == null) {
-			System.out.println("ROVER_00 check connection to server");
+			System.out.println("ROVER_05 check connection to server");
 			jsonScanMapIn = "";
 		}
 		StringBuilder jsonScanMap = new StringBuilder();
-		System.out.println("ROVER_00 incomming SCAN result - first readline: "
+		System.out.println("ROVER_05 incomming SCAN result - first readline: "
 				+ jsonScanMapIn);
 
 		if (jsonScanMapIn.startsWith("SCAN")) {
@@ -218,7 +218,7 @@ public class Rover {
 	
 	
 	// ********* this additional code needs to be cleaned up **************
-	// should not be using hard coded communication server address "http://localhost:3000/api", rovername, "open_secret");
+	// should not be using hard coded communication server address "http://localhost:2681/api", rovername, "open_secret");
 	// needs commenting to describe just what the heck are these functions doing?
 	
 	// Added by ROVER03 team
@@ -227,7 +227,7 @@ public class Rover {
 		ScienceDetail minDistanceScienceDetail = null;
 		try {
 			Communication communication = new Communication(
-					"http://localhost:3000/api", rovername, "open_secret");
+					"http://localhost:2681/api", rovername, "open_secret");
 
 			ScienceDetail[] scienceDetails = communication
 					.getAllScienceDetails();
@@ -461,7 +461,7 @@ public class Rover {
 			Coord currentLoc = getCurrentLocation();
 			MapTile[][] scanMapTiles = doScan().getScanMap();
 			Communication communication = new Communication(
-					"http://localhost:3000/api", rovername, "open_secret");
+					"http://localhost:2681/api", rovername, "open_secret");
 			communication.postScanMapTiles(currentLoc, scanMapTiles);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -494,7 +494,7 @@ public class Rover {
 			roverDetail.setToolType2(tollType2);
 
 			Communication communication = new Communication(
-					"http://localhost:3000/api", rovername, "open_secret");
+					"http://localhost:2681/api", rovername, "open_secret");
 			communication.sendRoverDetail(roverDetail);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -508,7 +508,7 @@ public class Rover {
 
 		try {
 			Communication communication = new Communication(
-					"http://localhost:3000/api", rovername, "open_secret");
+					"http://localhost:2681/api", rovername, "open_secret");
 			return communication.getAllRoverDetails();
 		} catch (Exception e) {
 			System.err.println(
@@ -522,7 +522,7 @@ public class Rover {
 
 		try {
 			Communication communication = new Communication(
-					"http://localhost:3000/api", rovername, "open_secret");
+					"http://localhost:2681/api", rovername, "open_secret");
 			communication.markScienceForGather(coord);
 			sendTo_RCP.println("GATHER");
 		} catch (Exception e) {

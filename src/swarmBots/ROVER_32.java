@@ -81,7 +81,7 @@ public class ROVER_32 {
 	// Communication variables
 	Communication comms;
 	private String corpSecret = "gz5YhL70a2";
-	private String url = "http://localhost:3000/api";
+	private String url = "http://localhost:2681/api";
 	long steps = 1;
 
 	int maxX;

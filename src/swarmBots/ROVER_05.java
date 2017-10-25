@@ -7,7 +7,9 @@ import java.io.PrintWriter;
 import java.lang.reflect.Type;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -18,7 +20,13 @@ import MapSupport.MapTile;
 import MapSupport.ScanMap;
 import common.Rover;
 import communicationInterface.Communication;
+import communicationInterface.ScienceDetail;
+import enums.RoverConfiguration;
+import enums.RoverDriveType;
+import enums.RoverMode;
+import enums.RoverToolType;
 import enums.Terrain;
+import rover_logic.Astar;
 
 /*
  * The seed that this program is built on is a chat program example found here:
@@ -75,6 +83,9 @@ public class ROVER_05 extends Rover {
 		SERVER_ADDRESS = serverAddress;
 	}
 
+	
+	
+
 	/**
 	 * 
 	 * The Rover Main instantiates and runs the rover as a runnable thread
@@ -116,17 +127,23 @@ public class ROVER_05 extends Rover {
 			int stepCount = 0;	
 			String line = "";	
 			boolean goingSouth = false;
+			boolean goingWest = false;
 			boolean stuck = false; // just means it did not change locations between requests,
 									// could be velocity limit or obstruction etc.
 			boolean blocked = false;
+			
+			Astar aStar = new Astar();
+			
+			RoverMode roverMode = RoverMode.EXPLORE;
+			ScienceDetail scienceDetail = null;
 	
 			// might or might not have a use for this
-			String[] cardinals = new String[4];
-			cardinals[0] = "N";
-			cardinals[1] = "E";
-			cardinals[2] = "S";
-			cardinals[3] = "W";	
-			String currentDir = cardinals[0];		
+//			String[] cardinals = new String[4];
+//			cardinals[0] = "N";
+//			cardinals[1] = "E";
+//			cardinals[2] = "S";
+//			cardinals[3] = "W";	
+//			String currentDir = cardinals[0];		
 			
 
 			/**
@@ -152,7 +169,7 @@ public class ROVER_05 extends Rover {
 			
 	        // **** Define the communication parameters and open a connection to the 
 			// SwarmCommunicationServer restful service through the Communication.java class interface
-	        String url = "http://localhost:5000/api"; // <----------------------  this will have to be changed if multiple servers are needed
+	        String url = "http://localhost:2681/api"; // <----------------------  this will have to be changed if multiple servers are needed
 	        String corp_secret = "gz5YhL70a2"; // not currently used - for future implementation
 	
 	        Communication com = new Communication(url, rovername, corp_secret);
@@ -179,7 +196,7 @@ public class ROVER_05 extends Rover {
 				// gets the scanMap from the server based on the Rover current location
 				scanMap = doScan(); 
 				// prints the scanMap to the Console output for debug purposes
-				scanMap.debugPrintMap();
+				//scanMap.debugPrintMap();
 				
 				
 				
@@ -196,63 +213,201 @@ public class ROVER_05 extends Rover {
 				// ***** get TIMER time remaining *****
 				timeRemaining = getTimeRemaining();
 				
-	
+				scienceDetail = analyzeAndGetSuitableScience();
+
+				if (scienceDetail != null) {
+					System.out.println("####### Science detail: " + scienceDetail + " ############");
+					roverMode = RoverMode.GATHER;
+				} else {
+					roverMode = RoverMode.EXPLORE;
+				}
+
 				
 				// ***** MOVING *****
 				// try moving east 5 block if blocked
+//				if (blocked) {
+//					if(stepCount > 0){
+//						moveEast();
+//						stepCount -= 1;
+//					}
+//					else {
+//						blocked = false;
+//						//reverses direction after being blocked and side stepping
+//						goingSouth = !goingSouth;
+//					}
+//					
+//				} else {
+//	
+//					// pull the MapTile array out of the ScanMap object
+//					MapTile[][] scanMapTiles = scanMap.getScanMap();
+//					int centerIndex = (scanMap.getEdgeSize() - 1)/2;
+//					// tile S = y + 1; N = y - 1; E = x + 1; W = x - 1
+//	
+//					if (goingSouth) {
+//						// check scanMap to see if path is blocked to the south
+//						// (scanMap may be old data by now)
+//						if (scanMapTiles[centerIndex][centerIndex +1].getHasRover() 
+//								|| scanMapTiles[centerIndex][centerIndex +1].getTerrain() == Terrain.ROCK
+//								|| scanMapTiles[centerIndex][centerIndex +1].getTerrain() == Terrain.NONE) {
+//							blocked = true;
+//							stepCount = 5;  //side stepping
+//						} else {
+//							// request to server to move
+//							moveSouth();
+//
+//						}
+//						
+//					} else {
+//						// check scanMap to see if path is blocked to the north
+//						// (scanMap may be old data by now)
+//						
+//						if (scanMapTiles[centerIndex][centerIndex -1].getHasRover() 
+//								|| scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.ROCK
+//								|| scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.NONE) {
+//							blocked = true;
+//							stepCount = 5;  //side stepping
+//						} else {
+//							// request to server to move
+//							moveNorth();			
+//						}					
+//					}
+//				}
+				
+//				if (roverMode == RoverMode.GATHER) {
+//					if (scienceDetail.getX() == getCurrentLocation().xpos
+//							&& scienceDetail.getY() == getCurrentLocation().ypos) {
+//						gatherScience(getCurrentLocation());
+//						System.out.println("$$$$$> Gathered science " + scienceDetail.getScience() + " at location "
+//								+ getCurrentLocation());
+//						scienceDetail = null;
+//						roverMode = RoverMode.EXPLORE;
+//					} else {
+//
+//						RoverConfiguration roverConfiguration = RoverConfiguration.valueOf(rovername);
+//						RoverDriveType driveType = RoverDriveType.valueOf(roverConfiguration.getMembers().get(0));
+//						RoverToolType tool1 = RoverToolType.getEnum(roverConfiguration.getMembers().get(1));
+//						RoverToolType tool2 = RoverToolType.getEnum(roverConfiguration.getMembers().get(2));
+//
+//						aStar.addScanMap(doScan(), getCurrentLocation(), tool1, tool2);
+//
+//						char dirChar = aStar.findPath(getCurrentLocation(),
+//								new Coord(scienceDetail.getX(), scienceDetail.getY()), driveType);
+//						System.out.println("from astar dirChar is: " + dirChar);
+//						// deciding direction based on the response from astar
+//						if (dirChar == 'S') {
+//							System.out.println("moving South, because I'm directed to go: " + dirChar);
+//							moveSouth();
+//						}
+//						if (dirChar == 'W') {
+//							System.out.println("moving West, because I'm directed to go: " + dirChar);
+//							moveWest();
+//						}
+//						if (dirChar == 'E') {
+//							System.out.println("moving East, because I'm directed to go: " + dirChar);
+//							moveEast();
+//						}
+//						if (dirChar == 'N') {
+//							System.out.println("moving North, because I'm directed to go: " + dirChar);
+//							moveNorth();
+//						}
+//						if (dirChar == 'U') {
+//							System.out.println("got U, because I'm directed to go: " + dirChar);
+//							roverMode = RoverMode.EXPLORE;
+//						}
+//
+//						System.out.println("=====> In gather mode using Astar in the direction " + dirChar);
+//					}
+//
+//				} // end primary addition of science/harvest
+//
+//				// following else portion is for when scienceDetail is not
+//				// found, this is our default movement
+//				else {
 				if (blocked) {
-					if(stepCount > 0){
-						moveEast();
-						stepCount -= 1;
-					}
-					else {
+					if (stepCount > 0) {
+						if (southBlocked() == true && westBlocked() == false) {
+							// System.out.println("-----HELP ME I AM BLOCKED
+							// FROM SOUTH!!-----");
+							moveWest();
+							stepCount -= 1;
+						} else if (southBlocked() == true && westBlocked() == true) {
+							// System.out.println("-----HELP ME I AM BLOCKED
+							// FROM SOUTH!!-----");
+							moveEast();
+							stepCount -= 1;
+						} else if (southBlocked() == true && eastBlocked() == true) {
+							// System.out.println("-----HELP ME I AM BLOCKED
+							// FROM SOUTH!!-----");
+							moveWest();
+							stepCount -= 1;
+						} 
+						else if (southBlocked() == true && eastBlocked() == true) {
+							// System.out.println("-----HELP ME I AM BLOCKED
+							// FROM SOUTH!!-----");
+							moveWest();
+							stepCount -= 1;
+						}else {
+							moveSouth();
+							stepCount -= 1;
+						}
+					} else {
 						blocked = false;
-						//reverses direction after being blocked and side stepping
+						// reverses direction after being blocked and side
+						// stepping
+						goingWest = !goingWest;
 						goingSouth = !goingSouth;
 					}
-					
+
 				} else {
-	
+
 					// pull the MapTile array out of the ScanMap object
 					MapTile[][] scanMapTiles = scanMap.getScanMap();
-					int centerIndex = (scanMap.getEdgeSize() - 1)/2;
-					// tile S = y + 1; N = y - 1; E = x + 1; W = x - 1
-	
-					if (goingSouth) {
-						// check scanMap to see if path is blocked to the south
-						// (scanMap may be old data by now)
-						if (scanMapTiles[centerIndex][centerIndex +1].getHasRover() 
-								|| scanMapTiles[centerIndex][centerIndex +1].getTerrain() == Terrain.ROCK
-								|| scanMapTiles[centerIndex][centerIndex +1].getTerrain() == Terrain.SAND
-								|| scanMapTiles[centerIndex][centerIndex +1].getTerrain() == Terrain.NONE) {
-							blocked = true;
-							stepCount = 5;  //side stepping
-						} else {
-							// request to server to move
-							moveSouth();
+					int centerIndex = (scanMap.getEdgeSize() - 1) / 2;
 
-						}
-						
-					} else {
-						// check scanMap to see if path is blocked to the north
+					com.postScanMapTiles(currentLoc, scanMapTiles);
+					// communication.detectScience(scanMapTiles, currentLoc,
+					// centerIndex);
+					// communication.displayAllDiscoveries();
+					// communication.detectCrystalScience(scanMapTiles,currentLoc);
+					// tile S = y + 1; N = y - 1; E = x + 1; W = x - 1
+				
+
+					if (goingWest) {
+						// check scanMap to see if path is blocked to the
+						// West
 						// (scanMap may be old data by now)
-						
-						if (scanMapTiles[centerIndex][centerIndex -1].getHasRover() 
-								|| scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.ROCK
-								|| scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.SAND
-								|| scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.NONE) {
+						if (scanMapTiles[centerIndex - 1][centerIndex].getHasRover()
+								|| scanMapTiles[centerIndex - 1][centerIndex].getTerrain() == Terrain.ROCK
+								|| scanMapTiles[centerIndex - 1][centerIndex].getTerrain() == Terrain.NONE) {
 							blocked = true;
-							stepCount = 5;  //side stepping
+							stepCount = 5; // side stepping
 						} else {
 							// request to server to move
-							moveNorth();			
-						}					
+							moveWest();
+						}
+
+					} else {
+						// check scanMap to see if path is blocked to the
+						// East
+						// (scanMap may be old data by now)
+
+						if (scanMapTiles[centerIndex + 1][centerIndex].getHasRover()
+								|| scanMapTiles[centerIndex + 1][centerIndex].getTerrain() == Terrain.ROCK
+								|| scanMapTiles[centerIndex + 1][centerIndex].getTerrain() == Terrain.NONE) {
+							System.out.println(">>>>>>>EAST BLOCKED<<<<<<<<");
+							blocked = true;
+							stepCount = 5; // side stepping
+						} else {
+							// request to server to move
+							moveEast();
+						}
 					}
 				}
-	
+				//}
+				sendRoverDetail(roverMode);
 				// another call for current location
 				currentLoc = getCurrentLocation();
-
+				postScanMapTiles();
 	
 				// test for stuckness
 				stuck = currentLoc.equals(previousLoc);	
@@ -283,7 +438,75 @@ public class ROVER_05 extends Rover {
 	
 	// ####################### Additional Support Methods #############################
 	
+	public boolean southBlocked() {
+		// pull the MapTile array out of the ScanMap object
+		MapTile[][] scanMapTiles = scanMap.getScanMap();
+		int centerIndex = (scanMap.getEdgeSize() - 1) / 2;
+		// tile S = y + 1; N = y - 1; E = x + 1; W = x - 1
+		if (scanMapTiles[centerIndex][centerIndex + 1].getHasRover()
+				|| scanMapTiles[centerIndex][centerIndex + 1].getTerrain() == Terrain.ROCK
+				|| scanMapTiles[centerIndex][centerIndex + 1].getTerrain() == Terrain.NONE) {
+			System.out.println(">>>>>>>SOUTH BLOCKED<<<<<<<<");
+			return true;
+		} else {
+			// request to server to move
+			return false;
+		}
+	}
+	// end check moving south
 
+	// checking if moving east is allowed
+	public boolean eastBlocked() {
+		// pull the MapTile array out of the ScanMap object
+		MapTile[][] scanMapTiles = scanMap.getScanMap();
+		int centerIndex = (scanMap.getEdgeSize() - 1) / 2;
+		// tile S = y + 1; N = y - 1; E = x + 1; W = x - 1
+		if (scanMapTiles[centerIndex + 1][centerIndex].getHasRover()
+				|| scanMapTiles[centerIndex + 1][centerIndex].getTerrain() == Terrain.ROCK
+				|| scanMapTiles[centerIndex + 1][centerIndex].getTerrain() == Terrain.NONE) {
+			System.out.println(">>>>>>>EAST BLOCKED<<<<<<<<");
+			return true;
+		} else {
+			// request to server to move
+			return false;
+		}
+	}
+	// end check moving east
+
+	// checking if moving west is allowed
+	public boolean westBlocked() {
+		// pull the MapTile array out of the ScanMap object
+		MapTile[][] scanMapTiles = scanMap.getScanMap();
+		int centerIndex = (scanMap.getEdgeSize() - 1) / 2;
+		// tile S = y + 1; N = y - 1; E = x + 1; W = x - 1
+		if (scanMapTiles[centerIndex - 1][centerIndex].getHasRover()
+				|| scanMapTiles[centerIndex - 1][centerIndex].getTerrain() == Terrain.ROCK
+				|| scanMapTiles[centerIndex - 1][centerIndex].getTerrain() == Terrain.NONE) {
+			System.out.println(">>>>>>>WEST BLOCKED<<<<<<<<");
+			return true;
+		} else {
+			// request to server to move
+			return false;
+		}
+	}
+	// end check moving west
+
+	// checking if moving north is allowed
+	public boolean northBlocked() {
+		// pull the MapTile array out of the ScanMap object
+		MapTile[][] scanMapTiles = scanMap.getScanMap();
+		int centerIndex = (scanMap.getEdgeSize() - 1) / 2;
+		// tile S = y + 1; N = y - 1; E = x + 1; W = x - 1
+		if (scanMapTiles[centerIndex - 1][centerIndex].getHasRover()
+				|| scanMapTiles[centerIndex - 1][centerIndex].getTerrain() == Terrain.ROCK
+				|| scanMapTiles[centerIndex - 1][centerIndex].getTerrain() == Terrain.NONE) {
+			System.out.println(">>>>>>>NORTH BLOCKED<<<<<<<<");
+			return true;
+		} else {
+			// request to server to move
+			return false;
+		}
+	}
 	
 	// add new methods and functions here
 
