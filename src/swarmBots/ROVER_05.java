@@ -31,8 +31,7 @@ import enums.RoverMode;
 import enums.RoverToolType;
 import enums.Terrain;
 import rover_logic.Astar;
-import swarmBots.ROVER_03.Direction;
-import swarmBots.ROVER_03.MoveTargetLocation;
+
 
 /*
  * The seed that this program is built on is a chat program example found here:
