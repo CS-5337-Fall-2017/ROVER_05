@@ -62,10 +62,7 @@ public class ROVER_05 extends Rover {
 	 * Runs the client
 	 */
 	public static void main(String[] args) throws Exception {
-		ROVER_05 client;
-    	// if a command line argument is present it is used
-		// as the IP address for connection to RoverControlProcessor instead of localhost 
-		
+		ROVER_05 client;		
 		if(!(args.length == 0)){
 			client = new ROVER_05(args[0]);
 		} else {
@@ -76,13 +73,11 @@ public class ROVER_05 extends Rover {
 	}
 
 	public ROVER_05() {
-		// constructor
 		System.out.println("ROVER_05 rover object constructed");
 		rovername = "ROVER_05";
 	}
 	
 	public ROVER_05(String serverAddress) {
-		// constructor
 		System.out.println("ROVER_05 rover object constructed");
 		rovername = "ROVER_05";
 		SERVER_ADDRESS = serverAddress;
@@ -154,7 +149,6 @@ public class ROVER_05 extends Rover {
 			while (true) {
 				String line = receiveFrom_RCP.readLine();
 				if (line.startsWith("SUBMITNAME")) {
-					//This sets the name of this instance of a swarmBot for identifying the thread to the server
 					sendTo_RCP.println(rovername); 
 					break;
 				}
@@ -177,15 +171,7 @@ public class ROVER_05 extends Rover {
 			Astar aStar = new Astar();
 			
 			RoverMode roverMode = RoverMode.EXPLORE;
-			//ScienceDetail scienceDetail = null;
-	
-			// might or might not have a use for this
-//			String[] cardinals = new String[4];
-//			cardinals[0] = "N";
-//			cardinals[1] = "E";
-//			cardinals[2] = "S";
-//			cardinals[3] = "W";	
-//			String currentDir = cardinals[0];		
+				
 			
 
 			/**
@@ -216,30 +202,20 @@ public class ROVER_05 extends Rover {
 	
 	        Communication com = new Communication(url, rovername, corp_secret);
 	
-	       // RoverMode roverMode = RoverMode.EXPLORE;
-			ScienceDetail scienceDetail = null;
 			/**
 			 *  ####  Rover controller process loop  ####
 			 *  This is where all of the rover behavior code will go
 			 *  
 			 */
-			while (true) {                     //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+			while (true) {                    
 		
-				// **** Request Rover Location from RCP ****
 				currentLoc = getCurrentLocation();
 				System.out.println(rovername + " currentLoc at start: " + currentLoc);
 				
-				// after getting location set previous equal current to be able
-				// to check for stuckness and blocked later
+			
 				previousLoc = currentLoc;		
-				
-				
 
-				// ***** do a SCAN *****
-				// gets the scanMap from the server based on the Rover current location
 				scanMap = doScan(); 
-				// prints the scanMap to the Console output for debug purposes
-				//scanMap.debugPrintMap();
 				
 				
 				MapTile[][] scanMapTiles = scanMap.getScanMap();
@@ -255,13 +231,8 @@ public class ROVER_05 extends Rover {
 				} else if (maxCoord.ypos < maxY) {
 					maxCoord = new Coord(maxCoord.xpos, maxY);
 				}
-
-				// ***** MOVING *****
 				MoveTargetLocation moveTargetLocation = null;
-
-				
-			 
-					moveTargetLocation = chooseMoveTargetLocation(scanMapTiles, currentLocInMapTile, currentLoc,
+				moveTargetLocation = chooseMoveTargetLocation(scanMapTiles, currentLocInMapTile, currentLoc,
 							mapTileCenter);
 
 					System.out.println("*****> In explore mode in the direction " + moveTargetLocation.d);
@@ -298,17 +269,11 @@ public class ROVER_05 extends Rover {
 					System.err.println("Post current map to communication server failed. Cause: "
 							+ e.getClass().getName() + ": " + e.getMessage());
 				}
-
-				// this is the Rovers HeartBeat, it regulates how fast the Rover
-				// cycles through the control loop
 				Thread.sleep(sleepTime);
 
 				System.out.println("ROVER_05 ------------ bottom process control --------------");
-			} // END of Rover control While(true) loop
-
-			// This catch block closes the open socket connection to the server
+			} 
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} finally {
 			if (socket != null) {
@@ -320,7 +285,7 @@ public class ROVER_05 extends Rover {
 			}
 		}
 
-	} // END of Rover run thread
+	}
 
 	private Coord getCoordNorthOf(Coord c) {
 
@@ -428,7 +393,6 @@ public class ROVER_05 extends Rover {
 		}
 		List<Integer> countList = Arrays.asList(northUnvisitedCount, eastUnvisitedCount, southUnvisitedCount,
 				westUnvisitedCount);
-		Collections.sort(countList);
 
 		Stack<Direction> directionStack = new Stack<>();
 
@@ -448,9 +412,7 @@ public class ROVER_05 extends Rover {
 		}
 		System.out.println("counts = North(" + northUnvisitedCount + ") East(" + eastUnvisitedCount + ") South("
 				+ southUnvisitedCount + ") West(" + westUnvisitedCount + ")");
-		// System.out.println("countList = " + countList);
 		System.out.println("favoredDirStack = " + directionStack);
-		// System.out.println("coordVisitCountMap = " + coordVisitCountMap);
 
 		return directionStack;
 	}
