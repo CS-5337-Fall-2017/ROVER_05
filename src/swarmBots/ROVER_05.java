@@ -173,7 +173,8 @@ public class ROVER_05 extends Rover {
 			RoverMode roverMode = RoverMode.EXPLORE;
 				
 			
-
+			//RoverMode roverMode = RoverMode.EXPLORE;
+			ScienceDetail scienceDetail = null;
 			/**
 			 *  ### Retrieve static values from RoverControlProcessor (RCP) ###
 			 *  These are called from outside the main Rover Process Loop
@@ -231,10 +232,19 @@ public class ROVER_05 extends Rover {
 				} else if (maxCoord.ypos < maxY) {
 					maxCoord = new Coord(maxCoord.xpos, maxY);
 				}
+				
+				
 				MoveTargetLocation moveTargetLocation = null;
 				moveTargetLocation = chooseMoveTargetLocation(scanMapTiles, currentLocInMapTile, currentLoc,
 							mapTileCenter);
-
+				if (roverMode == RoverMode.EXPLORE) {
+					scienceDetail = analyzeAndGetSuitableScience();
+					if (scienceDetail != null) {
+						roverMode = RoverMode.GATHER;
+					} else {
+						roverMode = RoverMode.EXPLORE;
+					}
+				}
 					System.out.println("*****> In explore mode in the direction " + moveTargetLocation.d);
 				
 
