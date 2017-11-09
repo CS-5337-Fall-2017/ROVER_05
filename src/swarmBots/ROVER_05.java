@@ -237,29 +237,39 @@ public class ROVER_05 extends Rover {
 				MoveTargetLocation moveTargetLocation = null;
 				
 				
-				if (scienceDetail.getX() == getCurrentLocation().xpos
-						&& scienceDetail.getY() == getCurrentLocation().ypos) {
-					gatherScience(getCurrentLocation());
-					scienceDetail = null;
-					roverMode = RoverMode.EXPLORE;
-				} else {
+				if (roverMode == RoverMode.GATHER) {
 
-					RoverConfiguration roverConfiguration = RoverConfiguration.valueOf(rovername);
-					RoverDriveType driveType = RoverDriveType.valueOf(roverConfiguration.getMembers().get(0));
-					RoverToolType tool1 = RoverToolType.getEnum(roverConfiguration.getMembers().get(1));
-					RoverToolType tool2 = RoverToolType.getEnum(roverConfiguration.getMembers().get(2));
+					System.out.println("FOUND SCIENCE TO GATHER: " + scienceDetail);
+					if (scienceDetail.getX() == getCurrentLocation().xpos
+							&& scienceDetail.getY() == getCurrentLocation().ypos) {
+						gatherScience(getCurrentLocation());
+						System.out.println("$$$$$> Gathered science " + scienceDetail.getScience() + " at location "
+								+ getCurrentLocation());
+						scienceDetail = null;
+						roverMode = RoverMode.EXPLORE;
+					} else {
 
-					aStar.addScanMap(doScan(), getCurrentLocation(), tool1, tool2);
+						RoverConfiguration roverConfiguration = RoverConfiguration.valueOf(rovername);
+						RoverDriveType driveType = RoverDriveType.valueOf(roverConfiguration.getMembers().get(0));
+						RoverToolType tool1 = RoverToolType.getEnum(roverConfiguration.getMembers().get(1));
+						RoverToolType tool2 = RoverToolType.getEnum(roverConfiguration.getMembers().get(2));
 
-					char dirChar = aStar.findPath(getCurrentLocation(),
-							new Coord(scienceDetail.getX(), scienceDetail.getY()), driveType);
+						aStar.addScanMap(doScan(), getCurrentLocation(), tool1, tool2);
 
-					moveTargetLocation = new MoveTargetLocation();
-					moveTargetLocation.d = Direction.get(dirChar);
-				}
-				
+						char dirChar = aStar.findPath(getCurrentLocation(),
+								new Coord(scienceDetail.getX(), scienceDetail.getY()), driveType);
+
+						moveTargetLocation = new MoveTargetLocation();
+						moveTargetLocation.d = Direction.get(dirChar);
+
+						System.out.println("=====> In gather mode using Astar in the direction " + dirChar);
+					}
+
+				} 
+				else{
 				moveTargetLocation = chooseMoveTargetLocation(scanMapTiles, currentLocInMapTile, currentLoc,
 							mapTileCenter);
+				}
 				if (roverMode == RoverMode.EXPLORE) {
 					scienceDetail = analyzeAndGetSuitableScience();
 					if (scienceDetail != null) {
