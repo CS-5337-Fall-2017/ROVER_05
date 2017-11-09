@@ -235,6 +235,29 @@ public class ROVER_05 extends Rover {
 				
 				
 				MoveTargetLocation moveTargetLocation = null;
+				
+				
+				if (scienceDetail.getX() == getCurrentLocation().xpos
+						&& scienceDetail.getY() == getCurrentLocation().ypos) {
+					gatherScience(getCurrentLocation());
+					scienceDetail = null;
+					roverMode = RoverMode.EXPLORE;
+				} else {
+
+					RoverConfiguration roverConfiguration = RoverConfiguration.valueOf(rovername);
+					RoverDriveType driveType = RoverDriveType.valueOf(roverConfiguration.getMembers().get(0));
+					RoverToolType tool1 = RoverToolType.getEnum(roverConfiguration.getMembers().get(1));
+					RoverToolType tool2 = RoverToolType.getEnum(roverConfiguration.getMembers().get(2));
+
+					aStar.addScanMap(doScan(), getCurrentLocation(), tool1, tool2);
+
+					char dirChar = aStar.findPath(getCurrentLocation(),
+							new Coord(scienceDetail.getX(), scienceDetail.getY()), driveType);
+
+					moveTargetLocation = new MoveTargetLocation();
+					moveTargetLocation.d = Direction.get(dirChar);
+				}
+				
 				moveTargetLocation = chooseMoveTargetLocation(scanMapTiles, currentLocInMapTile, currentLoc,
 							mapTileCenter);
 				if (roverMode == RoverMode.EXPLORE) {
