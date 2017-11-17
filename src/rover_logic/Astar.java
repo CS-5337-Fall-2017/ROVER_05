@@ -19,9 +19,9 @@ import communicationInterface.Communication;
 public class Astar extends PlanetMap
 {
     protected boolean[][][] explored;
-    String url = "http://localhost:3000/api";
+    String url = "http://localhost:2681/api";
     String corp_secret = "gz5YhL70a2";
-    String rovername = "ROVER_03";
+    String rovername = "ROVER_05";
     Map<Coord, MapTile> globalMap = new HashMap<Coord, MapTile>();
     //only search up to known map
     // int maxKnownX = 100;
@@ -70,12 +70,13 @@ public class Astar extends PlanetMap
     public void addScanMap(ScanMap scan, Coord centerpos, RoverToolType tool1, RoverToolType tool2) {
         MapTile[][] mapArray = scan.getScanMap();
 		new Thread(new MyRunnable(com, centerpos, mapArray)).start();
-		boolean[] mask = new boolean[5];
+		boolean[] mask = new boolean[6];
         mask[0] = true;
         mask[1] = tool1 == RoverToolType.RADIATION_SENSOR || tool2 == RoverToolType.RADIATION_SENSOR ?  true : false;
         mask[2] = tool1 == RoverToolType.CHEMICAL_SENSOR || tool2 == RoverToolType.CHEMICAL_SENSOR ? true : false;
         mask[3] = tool1 == RoverToolType.SPECTRAL_SENSOR || tool2 == RoverToolType.SPECTRAL_SENSOR ? true : false;
         mask[4] = tool1 == RoverToolType.RADAR_SENSOR || tool2 == RoverToolType.RADAR_SENSOR ? true : false;
+        mask[5] = tool1 == RoverToolType.EXCAVATOR || tool2 == RoverToolType.EXCAVATOR ? true : false;
         for(int i = 0; i < mapArray.length; i++) {
             for(int j = 0; j < mapArray[i].length; j++) {
                 //If we're inbounds
@@ -104,12 +105,13 @@ public class Astar extends PlanetMap
         int result = 0;
         int range = 7;
         if(tool1 == RoverToolType.RANGE_BOOTER || tool2 == RoverToolType.RANGE_BOOTER) { range = 11; }
-        boolean[] mask = new boolean[5];
+        boolean[] mask = new boolean[6];
         mask[0] = true;
         mask[1] = tool1 == RoverToolType.RADIATION_SENSOR || tool2 == RoverToolType.RADIATION_SENSOR ?  true : false;
         mask[2] = tool1 == RoverToolType.CHEMICAL_SENSOR || tool2 == RoverToolType.CHEMICAL_SENSOR ? true : false;
         mask[3] = tool1 == RoverToolType.SPECTRAL_SENSOR || tool2 == RoverToolType.SPECTRAL_SENSOR ? true : false;
         mask[4] = tool1 == RoverToolType.RADAR_SENSOR || tool2 == RoverToolType.RADAR_SENSOR ? true : false;
+        mask[5] = tool1 == RoverToolType.EXCAVATOR || tool2 == RoverToolType.EXCAVATOR ? true : false;
         for(int i = pos.xpos-(range/2); i <= pos.xpos+(range/2); i++) {
             for(int j = pos.ypos-(range/2); j <= pos.ypos+(range/2); j++) {
                 for(int k = 0; k < 5; k++) {
@@ -225,10 +227,7 @@ public class Astar extends PlanetMap
         if(ter == Terrain.NONE) {
             return true;
         }
-        if(ter == Terrain.SAND && drive != RoverDriveType.TREADS) {
-            return true;
-        }
-        if(ter == Terrain.ROCK && drive != RoverDriveType.WALKER) {
+        if(ter == Terrain.ROCK && drive == RoverDriveType.TREADS) {
             return true;
         }
         return false;

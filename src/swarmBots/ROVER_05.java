@@ -181,7 +181,7 @@ public class ROVER_05 extends Rover {
 			 *  because they only need to be called once
 			 */		
 			
-			// **** get equipment listing ****			
+			// **** get equipment listing from RCP ****			
 			equipment = getEquipment();
 			System.out.println(rovername + " equipment list results " + equipment + "\n");
 			
@@ -191,7 +191,7 @@ public class ROVER_05 extends Rover {
 			System.out.println(rovername + " START_LOC " + startLocation);
 			
 			
-			// **** Request TARGET_LOC Location from SwarmServer ****
+			// **** Request TARGET_LOC Location from SwarmServer where bounty is!! ****
 			targetLocation = getTargetLocation();
 			System.out.println(rovername + " TARGET_LOC " + targetLocation);
 			
@@ -208,17 +208,22 @@ public class ROVER_05 extends Rover {
 			 *  This is where all of the rover behavior code will go
 			 *  
 			 */
-			while (true) {                    
-		
-				currentLoc = getCurrentLocation();
-				System.out.println(rovername + " currentLoc at start: " + currentLoc);
-				
-			
-				previousLoc = currentLoc;		
+	        while (true) { 
 
-				scanMap = doScan(); 
-				
-				
+				//Request Rover Location from RCP 
+				currentLoc = getCurrentLocation();
+
+				System.out.println(rovername + " currentLoc at start: " + currentLoc + " maxCoord: " + maxCoord);
+
+				// after getting location set previous equal current to be able
+				// to check for stuckness and blocked later
+				previousLoc = currentLoc;
+
+				// ***** do a SCAN *****
+				// gets the scanMap from the server based on the Rover current
+				// location
+				scanMap = doScan();
+				scanMap.debugPrintMap();
 				MapTile[][] scanMapTiles = scanMap.getScanMap();
 				int mapTileCenter = (scanMap.getEdgeSize() - 1) / 2;
 				Coord currentLocInMapTile = new Coord(mapTileCenter, mapTileCenter);
@@ -232,18 +237,27 @@ public class ROVER_05 extends Rover {
 				} else if (maxCoord.ypos < maxY) {
 					maxCoord = new Coord(maxCoord.xpos, maxY);
 				}
-				
-				
+
+				// ***** MOVING *****
 				MoveTargetLocation moveTargetLocation = null;
-				
-				
+
+				if (roverMode == RoverMode.EXPLORE) {
+					scienceDetail = analyzeAndGetSuitableScience();
+					if (scienceDetail != null) {
+						roverMode = RoverMode.GATHER;
+					} else {
+						roverMode = RoverMode.EXPLORE;
+					}
+				}
 				if (roverMode == RoverMode.GATHER) {
 
 					System.out.println("FOUND SCIENCE TO GATHER: " + scienceDetail);
+
+					// The rover is at the location of science, so gather
 					if (scienceDetail.getX() == getCurrentLocation().xpos
 							&& scienceDetail.getY() == getCurrentLocation().ypos) {
 						gatherScience(getCurrentLocation());
-						System.out.println("$$$$$> Gathered science " + scienceDetail.getScience() + " at location "
+						System.out.println("Gathered science " + scienceDetail.getScience() + " at location "
 								+ getCurrentLocation());
 						scienceDetail = null;
 						roverMode = RoverMode.EXPLORE;
@@ -262,24 +276,15 @@ public class ROVER_05 extends Rover {
 						moveTargetLocation = new MoveTargetLocation();
 						moveTargetLocation.d = Direction.get(dirChar);
 
-						System.out.println("=====> In gather mode using Astar in the direction " + dirChar);
+						System.out.println("In gather mode using Astar in the direction " + dirChar);
 					}
 
-				} 
-				else{
-				moveTargetLocation = chooseMoveTargetLocation(scanMapTiles, currentLocInMapTile, currentLoc,
+				} else {
+					moveTargetLocation = chooseMoveTargetLocation(scanMapTiles, currentLocInMapTile, currentLoc,
 							mapTileCenter);
+
+					System.out.println("In explore mode in the direction " + moveTargetLocation.d);
 				}
-				if (roverMode == RoverMode.EXPLORE) {
-					scienceDetail = analyzeAndGetSuitableScience();
-					if (scienceDetail != null) {
-						roverMode = RoverMode.GATHER;
-					} else {
-						roverMode = RoverMode.EXPLORE;
-					}
-				}
-					System.out.println("*****> In explore mode in the direction " + moveTargetLocation.d);
-				
 
 				if (moveTargetLocation != null && moveTargetLocation.d != null) {
 					switch (moveTargetLocation.d) {
@@ -309,12 +314,12 @@ public class ROVER_05 extends Rover {
 					sendRoverDetail(roverMode);
 					postScanMapTiles();
 				} catch (Exception e) {
-					System.err.println("Post current map to communication server failed. Cause: "
-							+ e.getClass().getName() + ": " + e.getMessage());
+					System.err.println(e.getClass().getName() + ": " + e.getMessage());
 				}
-				Thread.sleep(sleepTime);
 
-				System.out.println("ROVER_05 ------------ bottom process control --------------");
+				// this is the Rovers HeartBeat, it regulates how fast the Rover
+				// cycles through the control loop
+				Thread.sleep(sleepTime);
 			} 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -328,7 +333,7 @@ public class ROVER_05 extends Rover {
 			}
 		}
 
-	}
+	} // END of Rover run thread
 
 	private Coord getCoordNorthOf(Coord c) {
 
@@ -436,6 +441,7 @@ public class ROVER_05 extends Rover {
 		}
 		List<Integer> countList = Arrays.asList(northUnvisitedCount, eastUnvisitedCount, southUnvisitedCount,
 				westUnvisitedCount);
+		Collections.sort(countList);
 
 		Stack<Direction> directionStack = new Stack<>();
 
@@ -453,10 +459,6 @@ public class ROVER_05 extends Rover {
 				directionStack.push(Direction.WEST);
 			}
 		}
-		System.out.println("counts = North(" + northUnvisitedCount + ") East(" + eastUnvisitedCount + ") South("
-				+ southUnvisitedCount + ") West(" + westUnvisitedCount + ")");
-		System.out.println("favoredDirStack = " + directionStack);
-
 		return directionStack;
 	}
 
@@ -467,6 +469,5 @@ public class ROVER_05 extends Rover {
 		System.out.println("MoveTargetLocation.d = " + moveTargetLocation.d);
 	}
 
-	
 
 }
